@@ -254,7 +254,7 @@
       "parameters": {
         "resource": "label",
         "operation": "create",
-        "name": "={{ (($json?.generalLabel?.name) || '').toString().trim() }}",
+        "name": "={{ $json && $json.generalLabel && $json.generalLabel.name ? String($json.generalLabel.name).trim() : '' }}",
         "options": {}
       },
       "type": "n8n-nodes-base.gmail",
@@ -381,7 +381,7 @@
       "parameters": {
         "resource": "label",
         "operation": "create",
-        "name": "={{ (($json?.priorityLabel?.name) || '').toString().trim() }}",
+        "name": "={{ $json && $json.priorityLabel && $json.priorityLabel.name ? String($json.priorityLabel.name).trim() : '' }}",
         "options": {}
       },
       "type": "n8n-nodes-base.gmail",
