@@ -1,0 +1,746 @@
+{
+  "name": "Email Manager",
+  "nodes": [
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=You are an AI email analyst agent. Your task is to analyze incoming emails and: \n**Always return 2 labels per email** and **conditionally return a draft reply**.\n\n\n### Available Tools:\n- **Reply**: Creates a draft reply (ONLY use for important incoming emails). When using this tool, you MUST provide:\n  - **Subject**: The reply subject (usually \"Re: \" + original subject)\n  - **Message**: The draft reply text\n  - **Thread_ID**: The thread ID from Email Input Fields below\n  - **To_Email**: The sender's email address from the \"From\" field below (extract just the email address, e.g., \"john@example.com\" from \"John Doe <john@example.com>\")\n- **Google Calendar**: Checks calendar availability\n- **Think Tool**: Use to to think about the scenario\n\n---\n\n### Email Input Fields\n\n- **From**: `{{ $json.From }}` (This is the sender's email - use this for To_Email when creating a reply)\n- **Subject**: `{{ $json.Subject }}`\n- **Email Body**: `{{ $json.snippet }}`\n- **Email ID**: `{{ $json.id }}`\n- **Thread ID**: `{{ $json.threadId }}`\n- **My Email Adress**: `{{ $json.To }}`\n- **Is Outgoing**: `{{ $json.isOutgoing || false }}`\n- **Today's Date**: `{{ $now.format('yyyy-MM-dd') }}`\n- **My Name**: `C.J.`\n- **Thread Context**: `{{ $json.threadContext || 'No previous messages in thread' }}`\n\n---\n\n### Instructions\n\n1. **Check if Email is Outgoing (Sent by You)**\n   - **CRITICAL**: Check the \"Is Outgoing\" field above\n   - If \"Is Outgoing\" is true, this email was sent BY YOU to someone else\n   - **NEVER create a draft reply for emails you sent yourself**\n   - Only analyze and label outgoing emails, but skip draft creation completely\n\n2. **Review Thread Context**\n   - **IMPORTANT**: The thread context is already provided above in the **Thread Context** field\n   - Review all previous messages in the thread to understand:\n     - What was discussed earlier\n     - Any commitments, deadlines, or agreements made\n     - The conversation flow and tone\n   - Use this context to generate a more informed and relevant draft reply (if needed)\n\n3. **Analyze the Email**\n   - Understand sender, subject, and body\n   - Extract intent, tone, urgency, and any action required\n   - Consider the thread context when analyzing\n\n4. **Select Two Labels**\n   - Choose from this list:\n     - `Work`, `Personal`, `Finance`, `Travel`, `Shopping`, `Social`, `Updates`, `Promotions`, `Important`\n   - Assign one **priority** label:\n     - `01 - High Priority`, `02 - Medium Priority`, `03 - Low Priority`\n\n5. **Tone Detection**\n   - Choose one of: `Formal`, `Casual`, `Urgent`, `Friendly`, `Professional`, `Neutral`\n   - Consider the tone of previous messages in the thread\n\n6. **Meeting Detection**\n   - If the email contains scheduling:\n     - Extract datetime (in ISO format)\n     - Provide context\n     - Suggest availability logic (Free/Busy) and draft response\n\n7. **Generate Draft Reply (ONLY for Important Incoming Emails)**\n   \n   **CRITICAL RULES FOR DRAFT CREATION:**\n   - **NEVER create a draft if \"Is Outgoing\" is true** (email was sent by you)\n   - **ONLY create a draft if ALL of these conditions are met:**\n     1. Email is incoming (not outgoing)\n     2. PriorityLabel is \"01 - High Priority\"\n     3. GeneralLabel is either \"Work\" or \"Personal\"\n   - **DO NOT create drafts for:**\n     - Emails you sent yourself (outgoing)\n     - Low or Medium priority emails\n     - Finance, Travel, Shopping, Social, Updates, Promotions labels\n     - Newsletters, automated emails, or no-reply senders\n   \n   **When generating the draft reply (if conditions are met):**\n   - **ALWAYS** review the Thread Context provided above before drafting\n   - **CRITICAL**: When using the Reply tool, you MUST provide:\n     - **To_Email**: Extract the email address from the \"From\" field above (e.g., if From is \"John Doe <john@example.com>\", use \"john@example.com\")\n     - **Subject**: Use \"Re: \" + the original subject from Email Input Fields\n     - **Message**: The draft reply text\n     - **Thread_ID**: Use the Thread ID from Email Input Fields\n   - Reference previous messages in the thread when relevant (e.g., \"As we discussed earlier...\", \"Following up on your previous email...\")\n   - Maintain consistency with the conversation flow\n   - Mirror the tone of the original sender and thread\n   - Be clear, polite, and concise\n   - Answer as a human would\n   - Include availability if relevant\n   - Avoid repeating information already covered in the thread\n   - Acknowledge any previous commitments or agreements mentioned in the thread\n   \n   **If draft should NOT be created, set draftReply to null in your JSON output.**\n\n---\n\n### Output Format (JSON only — no markdown)\n\n```json\n{\n  \"labels\": [\n    { \"Genrallabel\": \"Work\", \"confidence\": 94 },\n    { \"PriorityLabel\": \"High Priority\", \"confidence\": 88 }\n  ],\n  \"labelExplanation\": \"The email is work-related and time-sensitive.\",\n  \"tone\": \"Professional\",\n  \"dateCheck\": {\n    \"suggestedTime\": \"2025-05-10T14:00:00\",\n    \"availability\": \"Busy\",\n    \"responseSuggestion\": \"Apologize and propose an alternate time\"\n  },\n  \"draftReply\": \"Hi Jane, thanks for your message. I'm not available Friday at 2 PM, but I can do later that day or Monday morning. Let me know what works for you!\"\n",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 1.9,
+      "position": [
+        -1424,
+        432
+      ],
+      "id": "4d3161ea-37de-4c54-ad8a-294d3c200429",
+      "name": "AI Agent"
+    },
+    {
+      "parameters": {
+        "model": {
+          "__rl": true,
+          "value": "gpt-4.1-mini",
+          "mode": "list",
+          "cachedResultName": "gpt-4.1-mini"
+        },
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
+      "typeVersion": 1.2,
+      "position": [
+        -1664,
+        672
+      ],
+      "id": "9a3f9bff-a0b5-488f-8efc-0150e9c9b9ed",
+      "name": "OpenAI Chat Model",
+      "credentials": {
+        "openAiApi": {
+          "id": "ZHZSTlEhZvIW3pVa",
+          "name": "OpenAi account"
+        }
+      }
+    },
+    {
+      "parameters": {},
+      "type": "@n8n/n8n-nodes-langchain.toolThink",
+      "typeVersion": 1,
+      "position": [
+        -1360,
+        672
+      ],
+      "id": "0fb2809a-c7c3-48db-81c1-46455398439a",
+      "name": "Think"
+    },
+    {
+      "parameters": {
+        "sessionIdType": "customKey",
+        "sessionKey": "={{ $json.id || $('Gmail.Trigger').item?.json?.id || $('Prepare Received Emails').item?.json?.id || $('Format Thread Context').item?.json?.id || 'default-session' }}"
+      },
+      "type": "@n8n/n8n-nodes-langchain.memoryBufferWindow",
+      "typeVersion": 1.3,
+      "position": [
+        -1504,
+        672
+      ],
+      "id": "755dc45b-2640-4ccc-ae17-fe0376d1663d",
+      "name": "Simple Memory"
+    },
+    {
+      "parameters": {
+        "resource": "draft",
+        "subject": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('Subject', ``, 'string') }}",
+        "message": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('Message', ``, 'string') }}",
+        "options": {
+          "threadId": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('Thread_ID', '', 'string') || $json.threadId || '' }}",
+          "sendTo": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('To_Email', '', 'string') || ($json.From || '').match(/[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\\.[a-zA-Z]{2,}/)?.[0] || '' }}"
+        }
+      },
+      "type": "n8n-nodes-base.gmailTool",
+      "typeVersion": 2.1,
+      "position": [
+        -1088,
+        672
+      ],
+      "id": "4af18876-5aa1-4b2a-9ce2-8d2c8f86e23d",
+      "name": "Reply",
+      "webhookId": "eaaa2953-498d-4d56-a027-278fd88cd75b",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "c20AV8kdEN2C2YkL",
+          "name": "Gmail account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "resource": "label",
+        "returnAll": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('Return_All', ``, 'boolean') }}"
+      },
+      "type": "n8n-nodes-base.gmailTool",
+      "typeVersion": 2.1,
+      "position": [
+        -1216,
+        672
+      ],
+      "id": "5abf940d-4597-4a7a-ac87-3b3b1bff3176",
+      "name": "Get Label",
+      "webhookId": "cf4c6f3d-0696-4451-8237-1af1512e4432",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "c20AV8kdEN2C2YkL",
+          "name": "Gmail account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "resource": "thread",
+        "operation": "get",
+        "threadId": "={{ $('Gmail.Trigger').item.json.threadId }}",
+        "options": {
+          "format": "full"
+        }
+      },
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.1,
+      "position": [
+        -1584,
+        432
+      ],
+      "id": "fetch-thread-context",
+      "name": "Fetch Thread Context",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "c20AV8kdEN2C2YkL",
+          "name": "Gmail account"
+        }
+      }
+    },
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [
+        -1904,
+        672
+      ],
+      "id": "manual-trigger-sent-emails",
+      "name": "Manual Trigger - Process Old Received Emails"
+    },
+    {
+      "parameters": {
+        "resource": "message",
+        "operation": "getAll",
+        "returnAll": false,
+        "limit": 50,
+        "options": {
+          "q": "in:inbox -in:sent",
+          "format": "full"
+        },
+        "filters": {
+          "labelIds": []
+        }
+      },
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.1,
+      "position": [
+        -1696,
+        672
+      ],
+      "id": "fetch-sent-emails",
+      "name": "Fetch Last 50 Received Emails",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "c20AV8kdEN2C2YkL",
+          "name": "Gmail account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// Prepare received emails for processing\nconst receivedEmails = $input.all();\n\n// Process each received email\nreturn receivedEmails.map(item => {\n  const email = item.json;\n  \n  // Extract email data\n  const fromHeader = email.payload?.headers?.find(h => h.name === 'From')?.value || email.from || '';\n  const toHeader = email.payload?.headers?.find(h => h.name === 'To')?.value || email.to || '';\n  const subjectHeader = email.payload?.headers?.find(h => h.name === 'Subject')?.value || email.subject || '(No Subject)';\n  \n  // Extract body text\n  let bodyText = email.textPlain || email.snippet || '';\n  if (!bodyText && email.textHtml) {\n    bodyText = email.textHtml.replace(/<[^>]*>/g, ' ').replace(/\\s+/g, ' ').trim();\n  }\n  \n  // Mark as incoming (not outgoing)\n  return {\n    json: {\n      ...email,\n      isOutgoing: false,\n      From: fromHeader,\n      To: toHeader,\n      Subject: subjectHeader,\n      snippet: bodyText || email.snippet || '',\n      threadId: email.threadId || '',\n      id: email.id || '',\n      labelIds: email.labelIds || [],\n      threadContext: 'No previous messages in thread',\n      threadMessageCount: 0\n    }\n  };\n});"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -1504,
+        672
+      ],
+      "id": "prepare-sent-emails",
+      "name": "Prepare Received Emails"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Format thread messages for AI context\n// Check if we have any input data\nif (!$input || $input.all().length === 0) {\n  return {\n    json: {\n      error: 'No email data received from trigger',\n      threadContext: 'No email to process',\n      threadMessageCount: 0,\n      isOutgoing: false\n    }\n  };\n}\n\ntry {\n  // Get all inputs - trigger email and thread data\n  const allInputs = $input.all();\n  \n  // Find trigger email (has id but no messages property)\n  let triggerEmail = allInputs.find(item => item.json.id && !item.json.messages)?.json || null;\n  \n  // Find thread data (has messages property or is thread response)\n  let threadData = allInputs.find(item => item.json.messages || item.json.id === undefined)?.json || allInputs[0]?.json || {};\n  \n  // If trigger email not found, use first input\n  if (!triggerEmail) {\n    triggerEmail = allInputs.find(item => item.json.id)?.json || allInputs[0]?.json || {};\n  }\n  \n  // Check if email is outgoing (sent by user)\n  const userEmail = triggerEmail?.To || triggerEmail?.to || triggerEmail?.email || '';\n  const fromEmail = triggerEmail?.From || triggerEmail?.from || '';\n  const labelIds = triggerEmail?.labelIds || triggerEmail?.labels || [];\n  \n  // Extract email addresses from From field\n  const fromEmailMatch = fromEmail.match(/[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\\.[a-zA-Z]{2,}/)?.[0] || '';\n  const userEmailMatch = userEmail.match(/[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\\.[a-zA-Z]{2,}/)?.[0] || userEmail;\n  \n  // Email is outgoing if:\n  // 1. It has SENT label (Gmail system label)\n  // 2. From address matches user's email\n  // 3. labelIds contains 'SENT' (case-insensitive)\n  const isOutgoing = labelIds.includes('SENT') || \n                     labelIds.some(id => String(id).toLowerCase() === 'sent') ||\n                     (userEmailMatch && fromEmailMatch && fromEmailMatch.toLowerCase() === userEmailMatch.toLowerCase()) ||\n                     (userEmailMatch && fromEmail && fromEmail.toLowerCase().includes(userEmailMatch.toLowerCase()));\n  \n  // Extract messages from thread - handle different response formats\n  let messages = [];\n  if (Array.isArray(threadData.messages)) {\n    messages = threadData.messages;\n  } else if (threadData.messages && typeof threadData.messages === 'object') {\n    // If messages is an object with array inside\n    messages = Object.values(threadData.messages).flat();\n  } else if (Array.isArray(threadData)) {\n    // If threadData itself is an array\n    messages = threadData;\n  }\n  \n  // If no messages found, return empty context\n  if (!messages || messages.length === 0) {\n    return {\n      json: {\n        ...triggerEmail,\n        threadContext: 'No previous messages in thread',\n        threadMessageCount: 0,\n        isOutgoing: isOutgoing\n      }\n    };\n  }\n  \n  // Sort messages by date (oldest first)\n  const sortedMessages = messages.filter(msg => msg).sort((a, b) => {\n    const dateA = parseInt(a.internalDate || a.date || 0);\n    const dateB = parseInt(b.internalDate || b.date || 0);\n    return dateA - dateB;\n  });\n  \n  // Format each message for context\n  const formattedMessages = sortedMessages.map((msg, index) => {\n    try {\n      const headers = msg.payload?.headers || [];\n      const from = headers.find(h => h.name === 'From')?.value || msg.from || 'Unknown';\n      const subject = headers.find(h => h.name === 'Subject')?.value || msg.subject || '(No Subject)';\n      const date = msg.date || (msg.internalDate ? new Date(parseInt(msg.internalDate)).toISOString() : new Date().toISOString());\n      \n      // Extract body\n      let body = msg.textPlain || msg.snippet || '';\n      if (!body && msg.textHtml) {\n        body = msg.textHtml.replace(/<[^>]*>/g, ' ').replace(/\\s+/g, ' ').trim();\n      }\n      if (!body && msg.payload?.body?.data) {\n        try {\n          body = Buffer.from(msg.payload.body.data, 'base64').toString('utf-8');\n        } catch (e) {\n          body = '';\n        }\n      }\n      \n      // Check if message is from user\n      const userEmail = triggerEmail?.To || triggerEmail?.to || '';\n      const isFromMe = userEmail && from.includes(userEmail) || msg.labelIds?.includes('SENT');\n      \n      return `[Message ${index + 1} - ${date}]\nFrom: ${from}${isFromMe ? ' (You)' : ''}\nSubject: ${subject}\nBody: ${(body || '').substring(0, 500)}${body && body.length > 500 ? '...' : ''}`;\n    } catch (e) {\n      return `[Message ${index + 1} - Error formatting message]`;\n    }\n  }).filter(msg => msg).join('\\n\\n---\\n\\n');\n  \n  // Add thread context to the email data\n  return {\n    json: {\n      ...triggerEmail,\n      threadContext: formattedMessages || 'No previous messages in thread',\n      threadMessageCount: sortedMessages.length,\n      isOutgoing: isOutgoing\n    }\n  };\n} catch (error) {\n  // Fallback on any error\n  return {\n    json: {\n      threadContext: 'Error retrieving thread context: ' + error.message,\n      threadMessageCount: 0,\n      isOutgoing: false\n    }\n  };\n}"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -1504,
+        432
+      ],
+      "id": "format-thread-context",
+      "name": "Format Thread Context"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Extract labels from AI Agent output and preserve email ID from input\nconst aiOutput = $input.item.json;\n\n// Parse AI output to get labels\ntry {\n  const parsedOutput = typeof aiOutput.output === 'string' ? JSON.parse(aiOutput.output) : aiOutput.output;\n  \n  // Get labels\n  const generalLabel = parsedOutput?.labels?.[0]?.Genrallabel || '';\n  const priorityLabel = parsedOutput?.labels?.[1]?.PriorityLabel || '';\n  \n  // Get email ID from input - try multiple sources\n  // The AI Agent receives input from either Format Thread Context or Prepare Received Emails\n  // Both include the email ID, but the Agent might not preserve it in output\n  // So we need to get it from the input chain\n  let emailId = aiOutput.id || '';\n  \n  // If not in output, try to get from input items\n  if (!emailId) {\n    const allInputs = $input.all();\n    // Find the item that has an id but isn't the AI output\n    const emailItem = allInputs.find(item => \n      item.json && item.json.id && !item.json.output\n    );\n    emailId = emailItem?.json?.id || '';\n  }\n  \n  return {\n    json: {\n      'General Label': generalLabel,\n      'Priority Label': priorityLabel,\n      email_id: emailId,\n      id: emailId,\n      output: aiOutput.output || ''\n    }\n  };\n} catch (error) {\n  // Fallback if parsing fails\n  return {\n    json: {\n      'General Label': '',\n      'Priority Label': '',\n      email_id: aiOutput.id || '',\n      id: aiOutput.id || '',\n      output: aiOutput.output || '',\n      error: error.message\n    }\n  };\n}"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -976,
+        336
+      ],
+      "id": "d4d387fc-7044-4915-96ff-5a8b8e6f7990",
+      "name": "Suggested Labels"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "65d9a4e4-f114-4c80-90cf-20e15ff8df76",
+              "leftValue": "={{ $json.generalLabel.status }}",
+              "rightValue": "EXISTS",
+              "operator": {
+                "type": "string",
+                "operation": "equals",
+                "name": "filter.operator.equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        -288,
+        144
+      ],
+      "id": "a16d8650-8af3-4cae-8b6c-c7e740fcb0d7",
+      "name": "If General Label Exists"
+    },
+    {
+      "parameters": {
+        "resource": "label",
+        "operation": "create",
+        "name": "={{ String($json.generalLabel?.name || '').trim() }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.1,
+      "position": [
+        0,
+        208
+      ],
+      "id": "84200c48-50e0-45a2-8e7b-d3ff66aedddb",
+      "name": "Create Missing General Label",
+      "continueOnFail": true,
+      "webhookId": "f89ea885-ed36-4f24-a319-878e1fe62379",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "c20AV8kdEN2C2YkL",
+          "name": "Gmail account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "65d9a4e4-f114-4c80-90cf-20e15ff8df76",
+              "leftValue": "={{ $json.priorityLabel.status }}",
+              "rightValue": "EXISTS",
+              "operator": {
+                "type": "string",
+                "operation": "equals",
+                "name": "filter.operator.equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        -288,
+        672
+      ],
+      "id": "ba8d50e7-2456-4273-b350-20e2cae4bc98",
+      "name": "If Priority Label Exists"
+    },
+    {
+      "parameters": {
+        "operation": "addLabels",
+        "messageId": "={{ $json.email_id || $('Compare the Existing Labels To Suggested Ones').item.json.email_id || '' }}",
+        "labelIds": "={{ $json.priorityLabel.id }}"
+      },
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.1,
+      "position": [
+        0,
+        528
+      ],
+      "id": "72ea5f05-59a9-4a35-976b-e6147c4619c9",
+      "name": "Assigning the Priority Label",
+      "webhookId": "87e975b1-0509-4815-971d-82f2a9c65fc9",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "c20AV8kdEN2C2YkL",
+          "name": "Gmail account"
+        }
+      },
+      "continueOnFail": true
+    },
+    {
+      "parameters": {
+        "operation": "addLabels",
+        "messageId": "={{ $json.email_id || $('Compare the Existing Labels To Suggested Ones').item.json.email_id || '' }}",
+        "labelIds": "={{ $json.generalLabel.id }}"
+      },
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.1,
+      "position": [
+        0,
+        0
+      ],
+      "id": "6b3d2e0c-102d-4d7d-9758-c024ed474a40",
+      "name": "Assigning the General Label",
+      "webhookId": "87e975b1-0509-4815-971d-82f2a9c65fc9",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "c20AV8kdEN2C2YkL",
+          "name": "Gmail account"
+        }
+      },
+      "continueOnFail": true
+    },
+    {
+      "parameters": {
+        "operation": "addLabels",
+        "messageId": "={{ $json.email_id || $('Compare the Existing Labels To Suggested Ones').item.json.email_id || '' }}",
+        "labelIds": "={{ $json.id }}"
+      },
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.1,
+      "position": [
+        224,
+        208
+      ],
+      "id": "17f9dea6-e838-450d-b76e-fc930191780f",
+      "name": "Assigning the General Label ",
+      "webhookId": "39852e4e-29e6-44d5-8aca-a90f630d6bca",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "c20AV8kdEN2C2YkL",
+          "name": "Gmail account"
+        }
+      },
+      "continueOnFail": true
+    },
+    {
+      "parameters": {
+        "resource": "label",
+        "operation": "create",
+        "name": "={{ String($json.priorityLabel?.name || '').trim() }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.1,
+      "position": [
+        0,
+        768
+      ],
+      "id": "a8a207af-6e85-45c4-ad74-9c4c70ced555",
+      "name": "Create Missing Priority Label",
+      "continueOnFail": true,
+      "webhookId": "f89ea885-ed36-4f24-a319-878e1fe62379",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "c20AV8kdEN2C2YkL",
+          "name": "Gmail account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "addLabels",
+        "messageId": "={{ $json.email_id || $('Compare the Existing Labels To Suggested Ones').item.json.email_id || '' }}",
+        "labelIds": "={{ $json.id }}"
+      },
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.1,
+      "position": [
+        224,
+        768
+      ],
+      "id": "be8699e4-6598-4864-8d45-9a67e7ac486f",
+      "name": "Assigning the Priority Label ",
+      "webhookId": "39852e4e-29e6-44d5-8aca-a90f630d6bca",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "c20AV8kdEN2C2YkL",
+          "name": "Gmail account"
+        }
+      },
+      "continueOnFail": true
+    },
+    {
+      "parameters": {
+        "resource": "label",
+        "returnAll": true
+      },
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.1,
+      "position": [
+        -752,
+        496
+      ],
+      "id": "ce3f821c-d63d-4f03-9853-37a6c726f5e3",
+      "name": "Get All The Labels",
+      "webhookId": "21f0802d-4c5a-4902-aa9a-965a92e6acf9",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "c20AV8kdEN2C2YkL",
+          "name": "Gmail account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// Process each email's suggested labels separately\ntry {\n  const allItems = $input.all();\n  \n  if (!allItems || allItems.length === 0) {\n    return [{ json: { error: 'No input data', email_id: '', generalLabel: { name: '', status: 'NOT EXISTS', id: null }, priorityLabel: { name: '', status: 'NOT EXISTS', id: null } } }];\n  }\n  \n  // Separate Gmail labels from suggested labels\n  // Gmail labels come from \"Get All The Labels\" (have name/id properties, no General/Priority Label)\n  const gmailLabels = allItems\n    .filter(item => item.json && item.json.name && item.json.id && !item.json['General Label'] && !item.json['Priority Label'])\n    .map(item => item.json);\n  \n  // Get all suggested label items (emails with General Label or Priority Label)\n  const suggestedLabelItems = allItems.filter(item => \n    item.json && (item.json['General Label'] || item.json['Priority Label'])\n  );\n  \n  // If no suggested labels found, return empty result\n  if (suggestedLabelItems.length === 0) {\n    return [{ json: { error: 'No suggested labels found', email_id: '', generalLabel: { name: '', status: 'NOT EXISTS', id: null }, priorityLabel: { name: '', status: 'NOT EXISTS', id: null } } }];\n  }\n  \n  // Function to find label including its ID\n  function findLabel(labelName) {\n    if (!labelName) return null;\n    \n    const searchName = labelName.toLowerCase().trim();\n    const foundLabel = gmailLabels.find(label => \n      label.name && label.name.toLowerCase().trim() === searchName\n    );\n    \n    return foundLabel || null;\n  }\n  \n  // Process each email's suggested labels\n  const results = suggestedLabelItems.map((item, index) => {\n    const suggestedLabelsNode = item.json || {};\n    const suggestedLabel1 = (suggestedLabelsNode['General Label'] || '').toString().trim();\n    const suggestedLabel2 = (suggestedLabelsNode['Priority Label'] || '').toString().trim();\n    \n    // Get email ID from the suggested labels item\n    const emailId = suggestedLabelsNode.email_id || \n                     suggestedLabelsNode.id || \n                     '';\n    \n    // Check both labels and include ID if exists\n    const result = {\n      generalLabel: {\n        name: suggestedLabel1,\n        status: \"NOT EXISTS\",\n        id: null\n      },\n      priorityLabel: {\n        name: suggestedLabel2,\n        status: \"NOT EXISTS\",\n        id: null\n      },\n      email_id: emailId\n    };\n    \n    // Check and update general label\n    if (suggestedLabel1) {\n      const generalLabelMatch = findLabel(suggestedLabel1);\n      if (generalLabelMatch) {\n        result.generalLabel.status = \"EXISTS\";\n        result.generalLabel.id = generalLabelMatch.id;\n      }\n    }\n    \n    // Check and update priority label\n    if (suggestedLabel2) {\n      const priorityLabelMatch = findLabel(suggestedLabel2);\n      if (priorityLabelMatch) {\n        result.priorityLabel.status = \"EXISTS\";\n        result.priorityLabel.id = priorityLabelMatch.id;\n      }\n    }\n    \n    return {\n      json: result,\n      pairedItem: { item: index }\n    };\n  });\n  \n  return results;\n} catch (error) {\n  // Return safe fallback on any error\n  return [{\n    json: {\n      error: error.message,\n      email_id: '',\n      generalLabel: { name: '', status: 'NOT EXISTS', id: null },\n      priorityLabel: { name: '', status: 'NOT EXISTS', id: null }\n    },\n    pairedItem: { item: 0 }\n  }];\n}"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -464,
+        416
+      ],
+      "id": "be669874-1ce0-4484-aa93-474d8f584b93",
+      "name": "Compare the Existing Labels To Suggested Ones"
+    },
+    {
+      "parameters": {
+        "pollTimes": {
+          "item": [
+            {
+              "mode": "every10Seconds"
+            }
+          ]
+        },
+        "filters": {
+          "q": "is:unread -in:sent"
+        }
+      },
+      "type": "n8n-nodes-base.gmailTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        -1696,
+        432
+      ],
+      "id": "922362ae-275c-44a4-ad47-d592fcbc73ba",
+      "name": "Gmail.Trigger",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "c20AV8kdEN2C2YkL",
+          "name": "Gmail account"
+        }
+      }
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "OpenAI Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Think": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Simple Memory": {
+      "ai_memory": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_memory",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Reply": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Label": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI Agent": {
+      "main": [
+        [
+          {
+            "node": "Suggested Labels",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Suggested Labels": {
+      "main": [
+        [
+          {
+            "node": "Get All The Labels",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Compare the Existing Labels To Suggested Ones",
+            "type": "main",
+            "index": 1
+          }
+        ]
+      ]
+    },
+    "If General Label Exists": {
+      "main": [
+        [
+          {
+            "node": "Assigning the General Label",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Create Missing General Label",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Create Missing General Label": {
+      "main": [
+        [
+          {
+            "node": "Assigning the General Label ",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If Priority Label Exists": {
+      "main": [
+        [
+          {
+            "node": "Assigning the Priority Label",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Create Missing Priority Label",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Create Missing Priority Label": {
+      "main": [
+        [
+          {
+            "node": "Assigning the Priority Label ",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get All The Labels": {
+      "main": [
+        [
+          {
+            "node": "Compare the Existing Labels To Suggested Ones",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Compare the Existing Labels To Suggested Ones": {
+      "main": [
+        [
+          {
+            "node": "If General Label Exists",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "If Priority Label Exists",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Gmail.Trigger": {
+      "main": [
+        [
+          {
+            "node": "Fetch Thread Context",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Format Thread Context",
+            "type": "main",
+            "index": 1
+          }
+        ]
+      ]
+    },
+    "Fetch Thread Context": {
+      "main": [
+        [
+          {
+            "node": "Format Thread Context",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Format Thread Context": {
+      "main": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Manual Trigger - Process Old Received Emails": {
+      "main": [
+        [
+          {
+            "node": "Fetch Last 50 Received Emails",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Fetch Last 50 Received Emails": {
+      "main": [
+        [
+          {
+            "node": "Prepare Received Emails",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Prepare Received Emails": {
+      "main": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "74801f2d-fa55-4ddb-9f78-a308bbae5a6f",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "7b525d6d826b8a561d5e630937e2bcfce0f6f8ce6a38e64071d04fb2a5033284"
+  },
+  "id": "JLt13MVuRj1n6NUH",
+  "tags": []
+}
